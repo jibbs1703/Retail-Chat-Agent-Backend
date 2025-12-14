@@ -19,3 +19,10 @@ clear-pytest: clear-ruff
 	find . -type d -name '.pytest_cache' -exec rm -rf {} +
 
 clear: clear-pytest
+
+build-ollama:
+	cd ollama
+	docker build -t custom-ollama:latest .
+
+run-ollama: build-ollama
+	docker run -d --name custom-ollama-container -p 11434:11434 -v ollama_data:/root/.ollama custom-ollama:latest

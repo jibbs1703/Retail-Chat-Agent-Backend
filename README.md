@@ -1,6 +1,6 @@
 # Research Paper Agent
 
-An intelligent, automated system designed to streamline the entire research paper workflow—from discovery to citation management.
+An intelligent, automated system designed to streamline the entire research paper workflow — from discovery to citation management.
 
 ## Overview
 
@@ -32,6 +32,6 @@ This project aims to build an AI-powered research assistant that helps academics
 
 - **Frontend**: Gradio
 - **Backend**: Python
-- **LLM**: Ollama
+- **LLM**: Open Source Models from Ollama
 - **Containerization**: Docker
 
