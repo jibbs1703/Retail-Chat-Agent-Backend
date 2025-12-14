@@ -19,6 +19,7 @@ clear-pytest: clear-ruff
 	find . -type d -name '.pytest_cache' -exec rm -rf {} +
 
 clear: clear-pytest
+	clear
 
 build-ollama:
 	cd ollama
