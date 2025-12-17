@@ -25,9 +25,17 @@ class ConfigSettings(BaseSettings):
     APP_NAME: str = "Research Paper Agent"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
+
     # LLM Settings
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3.1:8B")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
+    OLLAMA_EMBEDDING_MODEL: str = os.getenv("OLLAMA_EMBEDDING_MODEL", "nomic-embed-text")
+
+    # LangGraph Settings
+    MAX_RETRIES: int = int(os.getenv("MAX_RETRIES", "3"))
+    SEARCH_MAX_RESULTS: int = int(os.getenv("SEARCH_MAX_RESULTS", "10"))
+    ANALYSIS_MAX_PAPERS: int = int(os.getenv("ANALYSIS_MAX_PAPERS", "5"))
+
     # Vector Database Settings
     QDRANT_BASE_URL: str = os.getenv("QDRANT_BASE_URL", "http://localhost:6333")
 
