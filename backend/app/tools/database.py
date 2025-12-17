@@ -13,9 +13,7 @@ embedding_model = TextEmbedding(model_name=settings.OLLAMA_EMBEDDING_MODEL)
 
 def initialize_collections():
     """Initialize Qdrant collections if they don't exist."""
-    collections = ["papers", "search_history", "citations", "generated_docs"]
-
-    for collection in collections:
+    for collection in settings.QDRANT_COLLECTIONS:
         try:
             qdrant_client.get_collection(collection)
         except (ValueError, KeyError):
@@ -27,8 +25,12 @@ def initialize_collections():
 
 def embed_text(text: str) -> list[float]:
     """Generate embeddings for text."""
-    embeddings = list(embedding_model.embed([text]))
-    return embeddings[0] if embeddings else []
+    try:
+        embeddings = list(embedding_model.embed([text]))
+        return embeddings[0] if embeddings else []
+    except (RuntimeError, ValueError, IndexError) as e:
+        print(f"Embedding generation failed: {e}")
+        return []
 
 
 async def store_paper(paper: dict, collection: str = "papers"):
@@ -36,7 +38,8 @@ async def store_paper(paper: dict, collection: str = "papers"):
     initialize_collections()
 
     searchable_text = (
-        f"{paper['title']} {paper.get('abstract', '')} {' '.join(paper.get('authors', []))}"
+        f"{paper['title']} {paper.get('abstract', '')} "
+        f"{' '.join(paper.get('authors', []))}"
     )
 
     embedding = embed_text(searchable_text)

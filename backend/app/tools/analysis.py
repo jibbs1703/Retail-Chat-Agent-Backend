@@ -7,12 +7,9 @@ from bs4 import BeautifulSoup
 def extract_text_from_pdf(url: str) -> str | None:
     """Extract text content from a PDF URL."""
     try:
-        # This is a simplified implementation
-        # In production, you'd use PyPDF2, pdfplumber, or similar
+        # TODO: Implement PDF text extraction
         response = requests.get(url, timeout=10)
         if response.status_code == 200:
-            # For now, return a placeholder
-            # Real implementation would parse PDF
             return f"PDF content from {url} (extraction not implemented)"
         return None
     except (OSError, ValueError) as e:
@@ -24,25 +21,24 @@ def extract_text_from_web(url: str) -> str | None:
     """Extract text content from a web page."""
     try:
         response = requests.get(
-            url, timeout=10, headers={"User-Agent": "Mozilla/5.0 (compatible; ResearchAgent/1.0)"}
+            url,
+            timeout=10,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; ResearchAgent/1.0)"},
         )
 
         if response.status_code == 200:
             soup = BeautifulSoup(response.content, "html.parser")
 
-            # Remove script and style elements
             for script in soup(["script", "style"]):
                 script.extract()
 
-            # Get text
             text = soup.get_text()
 
-            # Clean up whitespace
             lines = (line.strip() for line in text.splitlines())
             chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
             text = " ".join(chunk for chunk in chunks if chunk)
 
-            return text[:5000]  # Limit text length
+            return text[:5000]
         return None
     except (requests.RequestException, ValueError) as e:
         print(f"Web text extraction failed: {e}")
@@ -70,7 +66,6 @@ def analyze_paper_content(paper: dict) -> dict:
             "limitations": ["Content not accessible"],
         }
 
-    # Simple analysis (in production, use LLM or NLP tools)
     analysis = {
         "summary": content[:500] + "..." if len(content) > 500 else content,
         "key_findings": extract_key_findings(content),
@@ -83,7 +78,6 @@ def analyze_paper_content(paper: dict) -> dict:
 
 def extract_key_findings(text: str) -> list[str]:
     """Extract key findings from text (simplified)."""
-    # Look for common patterns
     indicators = ["found that", "results show", "concluded that", "demonstrated that"]
     findings = []
 
@@ -93,7 +87,7 @@ def extract_key_findings(text: str) -> list[str]:
         if any(indicator in sentence for indicator in indicators):
             findings.append(sentence.capitalize())
 
-    return findings[:5]  # Limit to 5 findings
+    return findings[:5]
 
 
 def extract_methodology(text: str) -> str:

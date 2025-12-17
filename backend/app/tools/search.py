@@ -35,9 +35,16 @@ def search_web_academic(query: str, max_results: int = 5) -> list[dict]:
     """Search web for academic resources."""
     try:
         with DDGS() as ddgs:
-            results = list(ddgs.text(query + " academic research", max_results=max_results))
+            results = list(
+                ddgs.text(query + " academic research", max_results=max_results)
+            )
             return [
-                {"title": r["title"], "url": r["href"], "snippet": r["body"], "source": "web"}
+                {
+                    "title": r["title"],
+                    "url": r["href"],
+                    "snippet": r["body"],
+                    "source": "web",
+                }
                 for r in results
             ]
     except (ConnectionError, TimeoutError, KeyError) as e:

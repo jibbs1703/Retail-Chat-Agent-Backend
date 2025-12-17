@@ -28,17 +28,24 @@ class ConfigSettings(BaseSettings):
 
     # LLM Settings
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    OLLAMA_EMBEDDING_MODEL: str = os.getenv("OLLAMA_EMBEDDING_MODEL", "llama3")
     OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
-    OLLAMA_EMBEDDING_MODEL: str = os.getenv("OLLAMA_EMBEDDING_MODEL", "nomic-embed-text")
 
     # LangGraph Settings
-    MAX_RETRIES: int = int(os.getenv("MAX_RETRIES", "3"))
-    SEARCH_MAX_RESULTS: int = int(os.getenv("SEARCH_MAX_RESULTS", "10"))
     ANALYSIS_MAX_PAPERS: int = int(os.getenv("ANALYSIS_MAX_PAPERS", "5"))
+    MAX_RETRIES: int = int(os.getenv("MAX_RETRIES", "3"))
+    MIN_CITATIONS: int = int(os.getenv("MIN_CITATIONS", "1"))
+    MIN_RESULTS: int = int(os.getenv("MIN_RESULTS", "3"))
+    SEARCH_MAX_RESULTS: int = int(os.getenv("SEARCH_MAX_RESULTS", "10"))
 
     # Vector Database Settings
     QDRANT_BASE_URL: str = os.getenv("QDRANT_BASE_URL", "http://localhost:6333")
-    QDRANT_COLLECTIONS: list[str] = ["papers", "search_history", "citations", "generated_docs"]
+    QDRANT_COLLECTIONS: list[str] = [
+        "papers",
+        "search_history",
+        "citations",
+        "generated_docs",
+    ]
 
     class Config:
         """Pydantic configuration."""

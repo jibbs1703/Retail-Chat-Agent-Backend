@@ -17,7 +17,9 @@ async def get_ollama_models() -> list[dict[str, Any]]:
     ollama_models = []
     try:
         async with AsyncClient() as http_client:
-            response = await http_client.get(f"{settings.OLLAMA_BASE_URL}/api/tags", timeout=5.0)
+            response = await http_client.get(
+                f"{settings.OLLAMA_BASE_URL}/api/tags", timeout=5.0
+            )
             if response.status_code == 200:
                 models_data = response.json()
                 for model in models_data.get("models", []):
@@ -37,7 +39,9 @@ async def get_qdrant_collections() -> list[str]:
     qdrant_collections = []
     try:
         async with AsyncClient() as http_client:
-            response = await http_client.get(f"{settings.QDRANT_BASE_URL}/collections", timeout=5.0)
+            response = await http_client.get(
+                f"{settings.QDRANT_BASE_URL}/collections", timeout=5.0
+            )
             if response.status_code == 200:
                 collections_data = response.json()
                 for collection in collections_data.get("collections", []):
