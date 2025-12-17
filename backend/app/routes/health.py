@@ -56,7 +56,7 @@ async def health() -> dict[str, Any]:
     Returns the status of:
 
     - Available LLM Backends
-    - Vector Database Connectivity and Collections
+    - Available Vector Database Collections
     """
     ollama_models = await get_ollama_models()
     qdrant_collections = await get_qdrant_collections()
