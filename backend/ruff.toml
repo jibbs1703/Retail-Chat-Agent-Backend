@@ -8,7 +8,7 @@ select = ["A", "E3", "E4", "E5", "E7", "E9", "F", "UP", "B", "S", "I", "N", "C90
 #select = ["ALL"]
 ignore = [
     "S101", # Use of Assert in tests
-
+    "C901", # Complex functions
 ]
 
 exclude = [

@@ -38,6 +38,7 @@ class ConfigSettings(BaseSettings):
 
     # Vector Database Settings
     QDRANT_BASE_URL: str = os.getenv("QDRANT_BASE_URL", "http://localhost:6333")
+    QDRANT_COLLECTIONS: list[str] = ["papers", "search_history", "citations", "generated_docs"]
 
     class Config:
         """Pydantic configuration."""

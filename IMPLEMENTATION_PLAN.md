@@ -3,7 +3,7 @@
 ## Architecture Overview
 
 **Core Components:**
-- **CrewAI** - Multi-agent orchestration framework
+- **LangGraph** - Multi-agent orchestration framework for stateful workflows
 - **Ollama** - Local LLM (recommend llama3 or mistral)
 - **Qdrant** - Vector database for semantic search & memory
 - **FastAPI** - Backend REST API
@@ -17,10 +17,11 @@
 ### 1.1 Dependencies & Environment
 
 #### Core
-- crewai + crewai-tools
-- ollama (already set up)
+- langgraph + langchain + langchain-community
+- langchain-ollama (Ollama integration)
+- ollama
 - qdrant-client
-- fastembed (for embeddings)
+- fastembed
 
 #### Backend
 - fastapi
@@ -48,27 +49,23 @@ Research-Paper-Agent/
 │   ├── app/
 │   │   ├── __init__.py
 │   │   ├── config.py              # Configuration management
-│   │   ├── crew.py                # CrewAI orchestration
+│   │   ├── graph.py               # LangGraph workflow orchestration
 │   │   ├── interface.py           # Gradio UI
-│   │   ├── agents/
+│   │   ├── nodes/
 │   │   │   ├── __init__.py
 │   │   │   ├── literature_search.py
 │   │   │   ├── paper_analysis.py
 │   │   │   ├── data_synthesis.py
 │   │   │   ├── writer.py
 │   │   │   └── citation_manager.py
-│   │   ├── tasks/
+│   │   ├── edges/
 │   │   │   ├── __init__.py
-│   │   │   ├── literature_review.py
-│   │   │   ├── analysis.py
-│   │   │   ├── writing.py
-│   │   │   ├── citation.py
-│   │   │   └── synthesis.py
-│   │   ├── models/
+│   │   │   ├── routing.py          # Conditional routing logic
+│   │   │   └── validation.py       # Edge validation functions
+│   │   ├── state/
 │   │   │   ├── __init__.py
-│   │   │   ├── research.py        # Research-related models
-│   │   │   ├── email.py           # Email models
-│   │   │   └── paper.py           # Paper models
+│   │   │   ├── research_state.py   # State schema for the graph
+│   │   │   └── models.py           # Pydantic models for state
 │   │   └── routes/
 │   │       ├── __init__.py
 │   │       ├── research.py        # Research endpoints
@@ -100,8 +97,9 @@ Research-Paper-Agent/
 │   └── storage/                   # Persistent storage
 ├── tests/
 │   ├── __init__.py
-│   ├── test_agents.py             # Agent unit tests
-│   ├── test_tasks.py              # Task unit tests
+│   ├── test_nodes.py              # Node unit tests
+│   ├── test_edges.py              # Edge logic tests
+│   ├── test_graph.py              # Graph workflow tests
 │   ├── test_tools.py              # Tool unit tests
 │   ├── test_email.py              # Email service tests
 │   └── test_integration.py        # Integration tests
@@ -120,51 +118,59 @@ Research-Paper-Agent/
 
 ---
 
-## Phase 2: Core Agent System (Week 2-3)
+## Phase 2: Core Graph System (Week 2-3)
 
-### 2.1 Five Agent Architecture
+### 2.1 Five Node Architecture
 
-#### 1. Literature Search Agent
+#### 1. Literature Search Node
 - **Tools:** ArXiv API, Scholarly (Google Scholar), DuckDuckGo
-- **Memory:** Qdrant collection for search history
+- **State Updates:** Adds search results to research state
 - **Output:** List of relevant papers with metadata
 
-#### 2. Paper Analysis Agent
+#### 2. Paper Analysis Node
 - **Tools:** PDF parser, text extraction
-- **Memory:** Qdrant collection for analyzed papers
+- **State Updates:** Adds analyzed content to state
 - **Output:** Structured summaries + key findings
 
-#### 3. Data Synthesis Agent
+#### 3. Data Synthesis Node
 - **Tools:** Statistical analysis, trend detection
-- **Memory:** Entity memory in Qdrant
-- **Output:** Insights, patterns, research gaps
+- **State Updates:** Adds insights and patterns to state
+- **Output:** Research gaps, trends, synthesis
 
-#### 4. Writer Agent
+#### 4. Writer Node
 - **Tools:** Template engine, markdown formatter
-- **Memory:** Short-term task context
-- **Output:** Structured research paper sections
+- **State Updates:** Generates paper sections in state
+- **Output:** Structured research paper content
 
-#### 5. Citation Manager Agent
+#### 5. Citation Manager Node
 - **Tools:** Citation parser, formatter (APA/MLA/Chicago)
-- **Memory:** Citation database in Qdrant
-- **Output:** Formatted references + bibliography
+- **State Updates:** Adds formatted citations to state
+- **Output:** Complete bibliography and references
 
-### 2.2 Qdrant Integration
+### 2.2 State Management
 
-#### Collections
-
+#### Research State Schema
 ```python
-- papers_collection        # Paper embeddings + metadata
-- search_history          # User search queries
-- citations_collection    # Citation database
-- generated_docs         # Generated document history
+class ResearchState(TypedDict):
+    topic: str
+    search_results: List[Paper]
+    analyzed_papers: List[Analysis]
+    synthesis: Synthesis
+    paper_sections: Dict[str, str]
+    citations: List[Citation]
+    status: str
+    current_node: str
 ```
 
-#### Features
-- Semantic search for similar papers
-- Long-term memory across sessions
-- Duplicate detection
-- Citation relationship mapping
+#### Graph Flow
+```
+Start → Literature Search → Paper Analysis → Data Synthesis → Writer → Citation Manager → End
+```
+
+#### Conditional Edges
+- Quality checks between nodes
+- Retry logic for failed analyses
+- Branching based on research complexity
 
 ---
 
@@ -229,7 +235,7 @@ POST /api/config/email
 
 #### Tabs
 1. **New Research** - Topic input, preferences
-2. **Progress** - Real-time agent activity
+2. **Progress** - Real-time graph execution status
 3. **Results** - Preview generated paper
 4. **Email Setup** - SMTP configuration
 5. **History** - Past research papers
@@ -254,9 +260,9 @@ Embeddings: nomic-embed-text
 ```
 
 #### Multi-Model Strategy
-- Literature Review Agent → llama3:70b
+- Literature Review Node → llama3:70b
 - Analysis/Writing → llama3:70b  
-- Citation Agent → mistral:7b (faster)
+- Citation Node → mistral:7b (faster)
 
 ### 5.2 Qdrant Setup
 
@@ -352,21 +358,23 @@ DEBUG=true
 ## Development Workflow
 
 - **Week 1:** Environment + basic structure
-- **Week 2:** Agent implementation + Qdrant
-- **Week 3:** Document generation + email service
-- **Week 4:** API endpoints + Gradio UI
-- **Week 5:** Ollama optimization + testing
-- **Week 6:** Advanced features + deployment
+- **Week 2:** Node implementation + state management
+- **Week 3:** Graph construction + Qdrant integration
+- **Week 4:** Document generation + email service
+- **Week 5:** API endpoints + Gradio UI
+- **Week 6:** Ollama optimization + testing
+- **Week 7:** Advanced features + deployment
 
 ---
 
 ## Testing Strategy
 
-1. **Unit Tests** - Individual agents & tools
-2. **Integration Tests** - Full research workflow
-3. **Email Tests** - SMTP with test accounts
-4. **Load Tests** - Multiple concurrent requests
-5. **Vector Search Tests** - Qdrant performance
+1. **Unit Tests** - Individual nodes & tools
+2. **Graph Tests** - State transitions and routing logic
+3. **Integration Tests** - Full research workflow
+4. **Email Tests** - SMTP with test accounts
+5. **Load Tests** - Multiple concurrent requests
+6. **Vector Search Tests** - Qdrant performance
 
 ---
 
@@ -392,7 +400,7 @@ docker-compose up  # Ollama + Qdrant + Backend
 
 - **Ollama:** Free (local compute)
 - **Qdrant:** Free (self-hosted)
-- **CrewAI:** Free (MIT license)
+- **LangGraph:** Free (MIT license)
 - **All libraries:** Free
 
 ### Only Costs
@@ -404,7 +412,7 @@ docker-compose up  # Ollama + Qdrant + Backend
 ## Next Steps
 
 1. Set up dependencies and project structure
-2. Implement core agent system with CrewAI
+2. Implement core graph system with LangGraph
 3. Integrate Qdrant for semantic search and memory
 4. Build email delivery service
 5. Create FastAPI endpoints and Gradio UI
@@ -420,4 +428,4 @@ This plan provides a production-ready research paper agent that's:
 - ✅ Uses existing Ollama setup
 - ✅ Integrates Qdrant for semantic search/memory
 - ✅ Delivers formatted papers via email
-- ✅ Scalable and maintainable architecture
+- ✅ Scalable and maintainable architecture with LangGraph state management
