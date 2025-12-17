@@ -2,8 +2,8 @@
 
 from typing import Any
 
-import httpx
 from fastapi import APIRouter
+from httpx import AsyncClient, HTTPError, TimeoutException
 
 from app.core.config import get_settings
 
@@ -13,17 +13,18 @@ router = APIRouter()
 
 
 @router.get("/health")
-async def health_check() -> dict[str, Any]:
+async def health() -> dict[str, Any]:
     """
     Check the health of services needed for the application.
-    -  LLM backend
 
-    Returns:
-        Dictionary containing health status information.
+    Returns the status of:
+
+    - Available LLM Backends
+    - Vector Database Connectivity and Collections
     """
     ollama_models = []
     try:
-        async with httpx.AsyncClient() as http_client:
+        async with AsyncClient() as http_client:
             response = await http_client.get(f"{settings.OLLAMA_BASE_URL}/api/tags", timeout=5.0)
             if response.status_code == 200:
                 models_data = response.json()
@@ -34,10 +35,9 @@ async def health_check() -> dict[str, Any]:
                             "size_gb": round(model.get("size", 0) / 1_000_000_000, 2),
                         }
                     )
-    except (httpx.HTTPError, httpx.TimeoutException):
+    except (HTTPError, TimeoutException):
         ollama_models = [{"error": "Could not connect to Ollama"}]
 
     return {
-        "Backend Status": "healthy",
         "Available Ollama Models": ollama_models,
     }
