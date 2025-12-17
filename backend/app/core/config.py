@@ -28,6 +28,8 @@ class ConfigSettings(BaseSettings):
     # LLM Settings
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3.1:8B")
+    # Vector Database Settings
+    QDRANT_BASE_URL: str = os.getenv("QDRANT_BASE_URL", "http://localhost:6333")
 
     class Config:
         """Pydantic configuration."""
