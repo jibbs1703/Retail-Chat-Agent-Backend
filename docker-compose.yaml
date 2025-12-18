@@ -61,6 +61,16 @@ services:
       retries: 3
       start_period: 5s
 
+  search:
+    image: karust/openserp
+    container_name: search
+    restart: unless-stopped
+    ports:
+      - "7000:7000"
+    command: serve -a 0.0.0.0 -p 7000
+    networks:
+      - research-paper-agent-network
+
 volumes:
   api_data:
   ollama_data:
