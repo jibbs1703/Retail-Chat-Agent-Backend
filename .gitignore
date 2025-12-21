@@ -6,11 +6,6 @@ __pycache__/
 # C extensions
 *.so
 
-# Implementation Files
-SIMILAR.md
-IMPLEMENTATION_PLAN.md
-LANGGRAPH_REFACTORING_GUIDE.md
-
 # Distribution / packaging
 .Python
 build/
