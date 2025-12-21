@@ -47,6 +47,12 @@ class ConfigSettings(BaseSettings):
         "generated_docs",
     ]
 
+    # Web Search Settings
+    WEB_SEARCH_ENGINE: str = os.getenv("WEB_SEARCH_ENGINE", "google")
+    WEB_SEARCH_LANGUAGE: str = os.getenv("WEB_SEARCH_LANGUAGE", "EN")
+    WEB_SEARCH_RESULTS_LIMIT: int = int(os.getenv("WEB_SEARCH_RESULTS_LIMIT", "3"))
+    WEB_SEARCH_URL: str = os.getenv("WEB_SEARCH_URL", "http://127.0.0.1:7500")
+
     class Config:
         """Pydantic configuration."""
 
