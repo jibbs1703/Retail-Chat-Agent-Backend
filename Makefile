@@ -1,4 +1,4 @@
-.PHONY: add commit push clear-pycache clear-ruff clear-pytest clear build-ollama run-ollama lint test 
+.PHONY: add commit push clear-pycache clear-ruff clear-pytest clear build lint test 
 
 add:
 	git add .
@@ -30,13 +30,6 @@ clear-pytest: clear-ruff
 
 clear: clear-pytest
 	clear
-
-build-ollama:
-	cd ollama
-	docker build -t custom-ollama:latest .
-
-run-ollama: build-ollama
-	docker run -d --name custom-ollama-container -p 11434:11434 -v ollama_data:/root/.ollama custom-ollama:latest
 
 lint:
 	python3 -m ruff format .
