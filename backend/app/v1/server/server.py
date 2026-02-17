@@ -3,18 +3,17 @@
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from ..core.configuration import get_settings
 from ..routes import healthcheck_router
 
 router = APIRouter()
+settings = get_settings()
 
 
 app = FastAPI(
-    title="Retail Chat Agent Backend API",
-    description=(
-        "API for the Retail Chat Agent Backend, providing endpoints for chat "
-        "search and embedding models management."
-    ),
-    version="1.0.0",
+    title=settings.application_name,
+    description=settings.application_description,
+    version=settings.application_version,
 )
 
 app.add_middleware(
@@ -25,4 +24,4 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(healthcheck_router)
+app.include_router(healthcheck_router, prefix=settings.application_api_prefix)
