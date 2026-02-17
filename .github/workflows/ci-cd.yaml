@@ -5,10 +5,10 @@ on:
     branches:
       - "main"
       - "feature/**"
-  
-  workflow_dispatch:
-  
-  workflow_call:
+    paths-ignore:
+      - "README.md"
+      - "LICENSE"
+      - ".gitignore"
 
 jobs:
   tests:
