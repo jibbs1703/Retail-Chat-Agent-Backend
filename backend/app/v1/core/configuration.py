@@ -9,8 +9,9 @@ from pydantic_settings import BaseSettings
 
 class ApplicationSettings(BaseSettings):
     """Application settings for the Retail Chat Agent Backend."""
+
     load_dotenv()
-    
+
     application_api_prefix: str = "/api/v1"
     application_description: str = (
         "A backend service for a retail chat agent application."
