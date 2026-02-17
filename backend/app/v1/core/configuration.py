@@ -16,6 +16,7 @@ class ApplicationSettings(BaseSettings):
     application_description: str = (
         "A backend service for a retail chat agent application."
     )
+    application_frontend_url: str = os.getenv("FRONTEND_URL")
     application_name: str = "Retail Chat Agent Backend"
     application_version: str = "1.0.0"
 
