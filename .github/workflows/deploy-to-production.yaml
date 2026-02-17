@@ -1,0 +1,28 @@
+name: Deploy to Production Server
+
+on:
+  workflow_call
+
+jobs:
+  deploy-to-server:
+    name: Deploy Codebase to Production Server
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.PRODUCTION_SERVER_HOST }}
+          username: ${{ secrets.PRODUCTION_SERVER_USER }}
+          key: ${{ secrets.PRODUCTION_SERVER_SSH_KEY }}
+          script: |
+            set -e
+            echo "Connecting to production server and deploying codebase..."
+            
+            "Add deployment commands here, such as pulling latest code, restarting services, etc."
+
+            echo "Deployment to production server completed successfully!"

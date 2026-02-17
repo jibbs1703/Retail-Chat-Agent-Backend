@@ -1,0 +1,28 @@
+name: Deploy to Staging Server
+
+on:
+  workflow_call
+
+jobs:
+  deploy-to-server:
+    name: Deploy Codebase to Staging Server
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.STAGING_SERVER_HOST }}
+          username: ${{ secrets.STAGING_SERVER_USER }}
+          key: ${{ secrets.STAGING_SERVER_SSH_KEY }}
+          script: |
+            set -e
+            echo "Connecting to staging server and deploying codebase..."
+            
+            "Add deployment commands here, such as pulling latest code, restarting services, etc."
+
+            echo "Deployment to staging server completed successfully!"
