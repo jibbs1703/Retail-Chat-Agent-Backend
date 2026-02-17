@@ -1,1 +1,1 @@
-"""Research Paper Agent Backend package."""
+"""Retail Chat Agent Backend package."""
