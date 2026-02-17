@@ -2,10 +2,10 @@
 
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/healthcheck", tags=["Healthcheck"])
+router = APIRouter(tags=["Healthcheck"])
 
 
-@router.get("/")
+@router.get("/healthcheck")
 async def healthcheck():
     """Starter Healthcheck endpoint to verify that the server is running."""
     return {"status": "ok"}
