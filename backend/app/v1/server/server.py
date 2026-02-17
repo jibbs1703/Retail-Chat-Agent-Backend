@@ -3,7 +3,7 @@
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.app.v1.routes import healthcheck_router
+from ..routes import healthcheck_router
 
 router = APIRouter()
 
