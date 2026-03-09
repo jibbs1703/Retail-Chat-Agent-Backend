@@ -15,7 +15,8 @@ def setup_logger(
     Args:
         name: The name of the logger.
         level: Logging level.
-        log_file: Optional path to a file for persistent logging.
+        log_file: path to a file for persistent logging.
+                  If None, file logging is disabled.
 
     Returns:
         A configured logging.Logger instance.

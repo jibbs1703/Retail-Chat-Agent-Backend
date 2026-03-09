@@ -30,6 +30,9 @@ commit: add
 push: commit
 	git push
 
+new-branch:
+	git switch -c $(branch_name)
+
 clear-pycache:
 	find . -type d -name '__pycache__' -exec rm -rf {} +
 
