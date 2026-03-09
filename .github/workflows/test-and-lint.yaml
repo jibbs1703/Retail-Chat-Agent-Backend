@@ -17,6 +17,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      
+      - name: Speify Python Path
+        run: echo "PYTHONPATH=$(pwd)/backend" >> $GITHUB_ENV
 
       - name: Install Dependencies
         run: |
