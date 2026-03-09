@@ -16,15 +16,15 @@ jobs:
     uses: ./.github/workflows/test-and-lint.yaml
     secrets: inherit
   
-  build-and-push:
-    name: Build and Push Docker Images
-    needs: tests
-    if: github.ref == 'refs/heads/main'
-    uses: ./.github/workflows/build-and-push.yaml
-    permissions:
-      contents: write
-      packages: write
-    secrets: inherit
+  # build-and-push:
+  #   name: Build and Push Docker Images
+  #   needs: tests
+  #   if: github.ref == 'refs/heads/main'
+  #   uses: ./.github/workflows/build-and-push.yaml
+  #   permissions:
+  #     contents: write
+  #     packages: write
+  #   secrets: inherit
 
   # deploy-staging:
   #   name: Deploy to Staging Server
