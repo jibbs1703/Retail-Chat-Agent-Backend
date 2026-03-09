@@ -6,6 +6,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from ..core.configuration import get_settings
 from ..routes import healthcheck_router
 
+settings = get_settings()
+
+
 router = APIRouter()
 settings = get_settings()
 

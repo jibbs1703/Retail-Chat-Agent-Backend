@@ -1,5 +1,25 @@
-.PHONY: add commit push clear-pycache clear-ruff clear-pytest clear build lint test 
+.PHONY: add commit push clear-pycache clear-ruff clear-pytest clear lint test  backend-build backend-run backend-start backend-stop backend-restart backend-clean
+
 IMAGE_NAME=retail-chat-agent-backend:latest
+CONTAINER_NAME=retail-chat-agent-backend-container
+
+help:
+	@echo "Usage: make <target>"
+	@echo ""
+	@echo "Available targets:"
+	@echo "  add                 Stage all changes for commit"
+	@echo "  commit              Commit staged changes with a message"
+	@echo "  push                Push committed changes to remote repository"
+	@echo "  clear               Clear Python cache, ruff cache, and pytest cache"
+	@echo "  lint                Run ruff to format and check code"
+	@echo "  test                Run pytest on the tests/ directory"
+	@echo "  backend-build       Build the backend Docker image"
+	@echo "  backend-run         Run the backend Docker container"
+	@echo "  backend-start       Build and run the backend Docker container"
+	@echo "  backend-stop        Stop and remove the backend Docker container"
+	@echo "  backend-restart     Restart the backend Docker container"
+	@echo "  backend-clean       Clean up Docker images, containers, and volumes"
+	@echo ""
 
 add:
 	git add .
@@ -36,16 +56,18 @@ backend-run:
 	docker run \
 	-p 8000:8000 \
 	-v $(shell pwd)/backend/app:/app/app \
+	--name $(CONTAINER_NAME) \
 	$(IMAGE_NAME)
 
 backend-start: backend-build backend-run
 
-build:
-	docker compose down -v || true
-	docker compose up --build
+backend-stop:
+	@docker stop $(CONTAINER_NAME) || true
+	@docker rm $(CONTAINER_NAME) || true
 
-clean:
-	docker compose down -v || true
-	docker system prune -af --volumes
-	docker image prune -af
-	docker volume prune -af
+backend-restart: backend-stop backend-start
+
+backend-clean: backend-stop
+	@docker system prune -af --volumes
+	@docker image prune -af
+	@docker volume prune -af
