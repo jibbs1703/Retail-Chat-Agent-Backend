@@ -10,6 +10,7 @@ settings = get_settings()
 
 
 router = APIRouter()
+settings = get_settings()
 
 
 app = FastAPI(
