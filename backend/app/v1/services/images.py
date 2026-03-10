@@ -1,5 +1,6 @@
 """Image Services Module for Retail Chat Agent Backend."""
 
+from collections.abc import Sequence
 from io import BytesIO
 
 from PIL import Image
@@ -8,7 +9,6 @@ from ..core.configuration import get_settings
 from ..logger.logs import setup_logger
 
 logger = setup_logger("images")
-settings = get_settings()
 
 
 def convert_image(image_bytes: bytes) -> tuple[Image.Image, int, int]:
@@ -34,18 +34,21 @@ def convert_image(image_bytes: bytes) -> tuple[Image.Image, int, int]:
 
 def validate_image_type(
     image_format: str,
-    allowed_types: list[str] = settings.application_allowed_image_types,
+    allowed_types: Sequence[str] | None = None,
 ) -> None:
     """
     Validate that image format is in the allowed list.
 
     Args:
         image_format: Image format as detected by Pillow (e.g., 'PNG', 'JPEG').
-        allowed_types: List of allowed image types (lowercase, e.g., ['jpeg', 'png']).
+        allowed_types: Sequence of allowed image types (lowercase, e.g., ['jpeg', 'png']).
+            Defaults to the application-configured allowed types.
 
     Raises:
         ValueError: If image format is not allowed.
     """
+    if allowed_types is None:
+        allowed_types = get_settings().application_allowed_image_types
     image_format_lower = image_format.lower()
     if image_format_lower not in allowed_types:
         raise ValueError(
@@ -57,7 +60,7 @@ def validate_image_type(
 def validate_image(
     width: int,
     height: int,
-    min_size: tuple[int, int] = settings.application_image_min_size,
+    min_size: tuple[int, int] | None = None,
 ) -> None:
     """
     Validate that image dimensions meet minimum requirements.
@@ -65,11 +68,13 @@ def validate_image(
     Args:
         width: Image width in pixels.
         height: Image height in pixels.
-        min_size: Tuple of (min_width, min_height).
+        min_size: Tuple of (min_width, min_height). Defaults to the application-configured minimum size.
 
     Raises:
         ValueError: If image dimensions are too small.
     """
+    if min_size is None:
+        min_size = get_settings().application_image_min_size
     min_width, min_height = min_size
     if width < min_width or height < min_height:
         raise ValueError(
@@ -80,18 +85,20 @@ def validate_image(
 
 def resize_image(
     image: Image.Image,
-    optimal_size: tuple[int, int] = settings.application_image_optimal_size,
+    optimal_size: tuple[int, int] | None = None,
 ) -> tuple[Image.Image, bytes, int, int]:
     """
     Resize image to optimal dimensions if it exceeds them.
 
     Args:
         image: PIL Image object.
-        optimal_size: Tuple of (optimal_width, optimal_height).
+        optimal_size: Tuple of (optimal_width, optimal_height). Defaults to the application-configured optimal size.
 
     Returns:
         Tuple of (resized Image, image bytes, width, height).
     """
+    if optimal_size is None:
+        optimal_size = get_settings().application_image_optimal_size
     optimal_width, optimal_height = optimal_size
     width, height = image.size
 
