@@ -19,6 +19,9 @@ class BackendSettings(BaseSettings):
     application_frontend_url: str = os.getenv("FRONTEND_URL", "")
     application_name: str = "Retail Chat Agent Backend"
     application_version: str = "1.0.0"
+    application_image_optimal_size: tuple[int, int] = (224, 224)
+    application_image_min_size: tuple[int, int] = (64, 64)
+    application_allowed_image_types: list[str] = ["jpeg", "jpg", "png", "webp", "gif"]
 
     postgres_database: str = os.getenv("POSTGRES_DATABASE", "")
     postgres_host: str = os.getenv("POSTGRES_HOST", "")
