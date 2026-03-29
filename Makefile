@@ -1,7 +1,4 @@
-.PHONY: add commit push clear-pycache clear-ruff clear-pytest clear lint test  backend-build backend-run backend-start backend-stop backend-restart backend-clean
-
-IMAGE_NAME=retail-chat-agent-backend:latest
-CONTAINER_NAME=retail-chat-agent-backend-container
+.PHONY: add commit push clear-pycache clear-ruff clear-pytest clear lint test build up down restart logs clean
 
 help:
 	@echo "Usage: make <target>"
@@ -13,12 +10,12 @@ help:
 	@echo "  clear               Clear Python cache, ruff cache, and pytest cache"
 	@echo "  lint                Run ruff to format and check code"
 	@echo "  test                Run pytest on the tests/ directory"
-	@echo "  backend-build       Build the backend Docker image"
-	@echo "  backend-run         Run the backend Docker container"
-	@echo "  backend-start       Build and run the backend Docker container"
-	@echo "  backend-stop        Stop and remove the backend Docker container"
-	@echo "  backend-restart     Restart the backend Docker container"
-	@echo "  backend-clean       Clean up Docker images, containers, and volumes"
+	@echo "  build               Build all service images via Docker Compose"
+	@echo "  up                  Start all services in detached mode"
+	@echo "  down                Stop and remove all containers"
+	@echo "  restart             Restart all services"
+	@echo "  logs                Tail logs for all services"
+	@echo "  clean               Stop containers and remove images and volumes"
 	@echo ""
 
 add:
@@ -52,25 +49,15 @@ lint:
 test:
 	python3 -m pytest -vv tests/
 
-backend-build:
-	docker build -f backend/Dockerfile -t $(IMAGE_NAME) .
+build:
+	docker compose build
+	docker compose up -d
 
-backend-run:
-	docker run \
-	-p 8000:8000 \
-	-v $(shell pwd)/backend/app:/app/app \
-	--name $(CONTAINER_NAME) \
-	$(IMAGE_NAME)
+down:
+	docker compose down
 
-backend-start: backend-build backend-run
+restart:
+	docker compose restart
 
-backend-stop:
-	@docker stop $(CONTAINER_NAME) || true
-	@docker rm $(CONTAINER_NAME) || true
-
-backend-restart: backend-stop backend-start
-
-backend-clean: backend-stop
-	@docker system prune -af --volumes
-	@docker image prune -af
-	@docker volume prune -af
+clean:
+	docker compose down -v --rmi all

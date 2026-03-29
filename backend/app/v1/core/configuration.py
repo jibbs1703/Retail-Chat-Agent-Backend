@@ -1,38 +1,45 @@
 """Retail Chat Agent Backend Configuration Module."""
 
-import os
 from functools import lru_cache
 
-from dotenv import load_dotenv
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class BackendSettings(BaseSettings):
     """Application settings for the Retail Chat Agent Backend."""
 
-    load_dotenv()
-
     application_api_prefix: str = "/api/v1"
     application_description: str = (
         "A backend server for a retail chat agent application."
     )
-    application_frontend_url: str = os.getenv("FRONTEND_URL", "")
+    application_frontend_url: str = ""
     application_name: str = "Retail Chat Agent Backend"
     application_version: str = "1.0.0"
     application_image_optimal_size: tuple[int, int] = (224, 224)
     application_image_min_size: tuple[int, int] = (64, 64)
     application_allowed_image_types: list[str] = ["jpeg", "jpg", "png", "webp", "gif"]
 
-    postgres_database: str = os.getenv("POSTGRES_DATABASE", "")
-    postgres_host: str = os.getenv("POSTGRES_HOST", "")
-    postgres_password: str = os.getenv("POSTGRES_PASSWORD", "")
-    postgres_port: int = int(os.getenv("POSTGRES_PORT", 5432))
-    postgres_user: str = os.getenv("POSTGRES_USER", "")
+    openai_api_key: str = ""
+    openai_model: str = "gpt-4o"
+    openai_embedding_model: str = "text-embedding-3-small"
 
-    qdrant_host: str = os.getenv("QDRANT_HOST", "")
-    qdrant_image_collection: str = os.getenv("QDRANT_IMAGE_COLLECTION", "")
-    qdrant_text_collection: str = os.getenv("QDRANT_TEXT_COLLECTION", "")
-    qdrant_port: int = int(os.getenv("QDRANT_PORT", 6333))
+    redis_url: str = "redis://localhost:6379"
+
+    postgres_database: str = ""
+    postgres_host: str = ""
+    postgres_password: str = ""
+    postgres_port: int = 5432
+    postgres_user: str = ""
+
+    qdrant_host: str = "localhost"
+    qdrant_image_collection: str = "product_images"
+    qdrant_text_collection: str = "product_text"
+    qdrant_port: int = 6333
+    qdrant_top_k: int = 5
+
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
 
 
 @lru_cache
