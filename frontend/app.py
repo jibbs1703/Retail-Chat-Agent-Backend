@@ -1,4 +1,4 @@
-"""Retail Chat Agent — Streamlit UI."""
+"""Retail Chat Agent Streamlit Frontend."""
 
 import base64
 import os
@@ -19,7 +19,7 @@ def check_health() -> bool:
 
 def send_message(message: str, image_b64: str | None, session_id: str | None) -> dict:
     payload = {"message": message, "image_b64": image_b64, "session_id": session_id}
-    r = requests.post(f"{BACKEND_URL}/api/v1/chat", json=payload, timeout=30)
+    r = requests.post(f"{BACKEND_URL}/api/v1/chat", json=payload, timeout=120)
     r.raise_for_status()
     return r.json()
 
@@ -47,7 +47,6 @@ for msg in st.session_state.messages:
 
 with st.sidebar:
     st.header("Options")
-    uploaded = st.file_uploader("Attach product image", type=["jpg", "jpeg", "png", "webp", "gif"])
     if st.button("Clear conversation"):
         st.session_state.messages = []
         st.session_state.session_id = None
@@ -55,11 +54,21 @@ with st.sidebar:
     if st.session_state.session_id:
         st.caption(f"Session: `{st.session_state.session_id}`")
 
+uploaded = st.file_uploader(
+    "📎 Attach a product image (optional)",
+    type=["jpg", "jpeg", "png", "webp", "gif"],
+    label_visibility="collapsed",
+    help="Attach a product image to search by visual similarity",
+)
+
 image_b64 = None
 if uploaded:
     image_b64 = base64.b64encode(uploaded.read()).decode()
+    st.image(
+        base64.b64decode(image_b64), width=120, caption="Image attached — will be searched on send"
+    )
 
-if prompt := st.chat_input("Ask about a product…", disabled=not healthy):
+if prompt := st.chat_input("Describe a product or ask a question…", disabled=not healthy):
     user_entry = {"role": "user", "content": prompt}
     if image_b64:
         user_entry["image"] = image_b64

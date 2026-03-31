@@ -15,12 +15,7 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - .env
-    environment:
-      - PYTHONUNBUFFERED=1
-      - REDIS_URL=redis://redis:6379
-      - QDRANT_HOST=12.123.6.76
-      - QDRANT_PORT=6333
+      - ./backend/app/v1/core/.env
     depends_on:
       - redis
     networks:
