@@ -34,10 +34,31 @@ if not healthy:
     st.error("Cannot reach the backend. Check that the backend service is running.")
     st.stop()
 
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+
+def fetch_history(session_id: str) -> list[dict]:
+    try:
+        r = requests.get(f"{BACKEND_URL}/api/v1/sessions/{session_id}", timeout=10)
+        if r.ok:
+            return r.json().get("messages", [])
+    except requests.RequestException:
+        pass
+    return []
+
+
 if "session_id" not in st.session_state:
-    st.session_state.session_id = None
+    # Re-hydrate from the URL on refresh
+    qp_session = st.query_params.get("session_id")
+    if qp_session:
+        history = fetch_history(qp_session)
+        if history:
+            st.session_state.session_id = qp_session
+            st.session_state.messages = history
+        else:
+            st.session_state.session_id = None
+            st.session_state.messages = []
+    else:
+        st.session_state.session_id = None
+        st.session_state.messages = []
 
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
@@ -50,6 +71,7 @@ with st.sidebar:
     if st.button("Clear conversation"):
         st.session_state.messages = []
         st.session_state.session_id = None
+        st.query_params.clear()
         st.rerun()
     if st.session_state.session_id:
         st.caption(f"Session: `{st.session_state.session_id}`")
@@ -83,7 +105,9 @@ if prompt := st.chat_input("Describe a product or ask a question…", disabled=n
         with st.spinner("Thinking…"):
             try:
                 data = send_message(prompt, image_b64, st.session_state.session_id)
-                st.session_state.session_id = data["session_id"]
+                if st.session_state.session_id != data["session_id"]:
+                    st.session_state.session_id = data["session_id"]
+                    st.query_params["session_id"] = data["session_id"]
                 reply = data["response"]
             except requests.HTTPError as e:
                 reply = f"Error {e.response.status_code}: {e.response.text}"

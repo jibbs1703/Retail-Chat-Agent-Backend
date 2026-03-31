@@ -27,18 +27,16 @@ class ChatRequest(BaseModel):
 class ProductMatch(BaseModel):
     """A single product result enriched with database details."""
 
-    product_id: int
+    product_id: str
     score: float
-    embedding_type: str = Field(
-        description="'text' or 'image', indicating which collection matched."
-    )
     name: str | None = None
-    description: str | None = None
-    price: float | None = None
-    category: str | None = None
     image_url: str | None = Field(
         default=None,
-        description="Presigned S3 URL for the product image (image results only).",
+        description="Presigned S3 URL for the product image.",
+    )
+    product_url: str | None = Field(
+        default=None,
+        description="URL to the product page.",
     )
 
 

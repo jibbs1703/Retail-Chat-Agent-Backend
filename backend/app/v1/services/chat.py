@@ -24,8 +24,7 @@ def _enrich(raw_results: list[dict], embedding_type: str) -> list[ProductMatch]:
         embedding_type: ``"text"`` or ``"image"``.
 
     Returns:
-        List of :class:`ProductMatch` with DB fields and (for image results)
-        a presigned ``image_url``.
+        List of :class:`ProductMatch` with name, presigned image_url, and product_url.
     """
     products: list[ProductMatch] = []
     for r in raw_results:
@@ -34,22 +33,17 @@ def _enrich(raw_results: list[dict], embedding_type: str) -> list[ProductMatch]:
         if product_id is None:
             continue
         db_row = get_product_by_id(product_id) or {}
-        image_url: str | None = None
-        if embedding_type == "image":
-            s3_url = payload.get("product_s3_image_url")
-            if s3_url:
-                image_url = generate_presigned_url(s3_url)
+
+        s3_url = payload.get("product_s3_image_url")
+        image_url: str | None = generate_presigned_url(s3_url) if s3_url else None
+
         products.append(
             ProductMatch(
-                product_id=product_id,
+                product_id=str(product_id),
                 score=r["score"],
-                embedding_type=embedding_type,
-                name=db_row.get("name") or db_row.get("product_name"),
-                description=db_row.get("description")
-                or db_row.get("product_description"),
-                price=db_row.get("price"),
-                category=db_row.get("category"),
+                name=db_row.get("product_title"),
                 image_url=image_url,
+                product_url=db_row.get("product_url"),
             )
         )
     return products
