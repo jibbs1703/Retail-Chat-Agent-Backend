@@ -1,101 +1,134 @@
 """Retail Chat Agent — Core Utilities Module.
 
 Provides helpers for:
-  - Creating OpenAI and Qdrant clients
-  - Generating text embeddings via OpenAI
-  - Describing product images via GPT-4o vision
+  - Creating a Qdrant client
+  - Generating text embeddings via CLIP (openai/clip-vit-large-patch14)
   - Querying the Qdrant vector database
   - Formatting product search results
-
-Note on image embeddings: product images are described via GPT-4o vision and
-the resulting description is embedded with the same text embedding model used
-for text search. This keeps dependencies minimal while leveraging OpenAI's
-strong vision capabilities. If the vector collections were built with a
-dedicated image encoder (e.g. CLIP), replace `describe_image` and
-`embed_text` accordingly.
 """
 
+import base64
+from io import BytesIO
+
 import requests
-from openai import OpenAI
+from PIL import Image as PILImage
 from qdrant_client import QdrantClient
 
 from .configuration import get_settings
 
+_clip_model = None
+_clip_processor = None
+_qdrant_client: QdrantClient | None = None
+_CLIP_MODEL_NAME: str = "openai/clip-vit-large-patch14"
 
-def get_openai_client() -> OpenAI:
-    """Create an OpenAI client using settings."""
-    settings = get_settings()
-    if not settings.openai_api_key:
-        raise ValueError(
-            "OpenAI API key not configured. Set OPENAI_API_KEY in the .env file."
-        )
-    return OpenAI(api_key=settings.openai_api_key)
+
+def _get_device() -> str:
+    import torch
+
+    return "cuda" if torch.cuda.is_available() else "cpu"
+
+
+def _load_clip_model():
+    from transformers import CLIPModel
+
+    global _clip_model
+    if _clip_model is None:
+        _clip_model = CLIPModel.from_pretrained(_CLIP_MODEL_NAME).to(_get_device())
+    return _clip_model
+
+
+def _load_clip_processor():
+    from transformers import CLIPProcessor
+
+    global _clip_processor
+    if _clip_processor is None:
+        _clip_processor = CLIPProcessor.from_pretrained(_CLIP_MODEL_NAME)
+    return _clip_processor
+
+
+def warm_up_clip() -> None:
+    """Load the CLIP model and processor into memory.
+
+    Call this once at application startup so the first request is not delayed
+    by model weight loading.
+    """
+    _load_clip_model()
+    _load_clip_processor()
+
+
+def _to_tensor(emb):
+    """Extract a plain 2-D tensor from a model output or raw tensor.
+
+    Handles the case where transformers returns a ``BaseModelOutputWithPooling``
+    object instead of a bare tensor, depending on the installed version.
+    """
+    if hasattr(emb, "pooler_output") and emb.pooler_output is not None:
+        return emb.pooler_output
+    if hasattr(emb, "last_hidden_state"):
+        return emb.last_hidden_state[:, 0]
+    return emb
 
 
 def get_qdrant_client() -> QdrantClient:
-    """Create a Qdrant client using settings."""
-    settings = get_settings()
-    return QdrantClient(host=settings.qdrant_host, port=settings.qdrant_port)
+    """Return a cached Qdrant client, creating it on first call."""
+    global _qdrant_client
+    if _qdrant_client is None:
+        settings = get_settings()
+        _qdrant_client = QdrantClient(
+            host=settings.qdrant_host,
+            port=settings.qdrant_port,
+            timeout=30,
+            check_compatibility=False,
+        )
+    return _qdrant_client
 
 
 def embed_text(text: str) -> list[float]:
-    """Generate a text embedding vector using OpenAI.
+    """Generate a normalized text embedding vector using CLIP.
 
     Args:
         text: The text to embed.
 
     Returns:
-        A list of floats representing the embedding vector.
+        A list of floats representing the normalized CLIP embedding vector.
     """
-    settings = get_settings()
-    client = get_openai_client()
-    response = client.embeddings.create(
-        model=settings.openai_embedding_model,
-        input=text,
-    )
-    return response.data[0].embedding
+    device = _get_device()
+    model = _load_clip_model()
+    processor = _load_clip_processor()
+    inputs = processor(
+        text=[text], return_tensors="pt", padding=True, truncation=True, max_length=77
+    ).to(device)
+    import torch
+
+    with torch.no_grad():
+        emb = model.get_text_features(**inputs)
+    emb = _to_tensor(emb)
+    emb = emb / emb.norm(dim=-1, keepdim=True)
+    return emb.cpu().numpy().flatten().astype("float32").tolist()
 
 
-def describe_image(image_b64: str) -> str:
-    """Use GPT-4o vision to produce a detailed product description from an image.
-
-    The description is later embedded and used to query the image collection,
-    so it focuses on attributes relevant to retail search (color, material,
-    style, category).
+def embed_image(image_b64: str) -> list[float]:
+    """Generate a normalized image embedding vector using CLIP.
 
     Args:
         image_b64: Base64-encoded image (JPEG or PNG).
 
     Returns:
-        A natural-language product description.
+        A list of floats representing the normalized CLIP embedding vector.
     """
-    settings = get_settings()
-    client = get_openai_client()
-    response = client.chat.completions.create(
-        model=settings.openai_model,
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": (
-                            "Describe this retail product image in detail for search"
-                            " purposes. Include: product category, color(s), material,"
-                            " style, key features, and any visible branding or"
-                            " distinctive characteristics."
-                        ),
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"},
-                    },
-                ],
-            }
-        ],
-        max_tokens=300,
-    )
-    return response.choices[0].message.content
+    image_bytes = base64.b64decode(image_b64)
+    image = PILImage.open(BytesIO(image_bytes)).convert("RGB")
+    device = _get_device()
+    model = _load_clip_model()
+    processor = _load_clip_processor()
+    inputs = processor(images=image, return_tensors="pt").to(device)
+    import torch
+
+    with torch.no_grad():
+        emb = model.get_image_features(**inputs)
+    emb = _to_tensor(emb)
+    emb = emb / emb.norm(dim=-1, keepdim=True)
+    return emb.cpu().numpy().flatten().astype("float32").tolist()
 
 
 def search_products_in_collection(
@@ -116,13 +149,13 @@ def search_products_in_collection(
     settings = get_settings()
     top_k = top_k or settings.qdrant_top_k
     client = get_qdrant_client()
-    results = client.search(
+    response = client.query_points(
         collection_name=collection,
-        query_vector=vector,
+        query=vector,
         limit=top_k,
         with_payload=True,
     )
-    return [{"score": round(r.score, 4), "product": r.payload} for r in results]
+    return [{"score": round(r.score, 4), "product": r.payload} for r in response.points]
 
 
 def format_product_results(results: list[dict]) -> str:
@@ -156,7 +189,7 @@ def check_qdrant_connection() -> bool:
     try:
         response = requests.get(
             f"http://{settings.qdrant_host}:{settings.qdrant_port}/healthz",
-            timeout=3.0,
+            timeout=30.0,
         )
         return response.status_code == 200
     except requests.RequestException:

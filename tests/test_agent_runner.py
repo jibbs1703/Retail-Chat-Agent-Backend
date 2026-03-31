@@ -48,26 +48,26 @@ def test_history_is_prepended():
 
 
 @pytest.mark.unit
-def test_image_produces_multimodal_message():
+def test_image_results_are_appended_to_message():
     agent = _make_agent("Found matching products!")
-    image_b64 = "aGVsbG8="
-    invoke_retail_agent(agent, "what is this?", image_b64=image_b64)
+    image_results = "- Blue Jacket (similarity: 0.95): Slim-fit blue denim jacket."
+    invoke_retail_agent(agent, "what is this?", image_results=image_results)
     messages = agent.invoke.call_args[0][0]["messages"]
     last = messages[-1]
     assert isinstance(last, HumanMessage)
-    assert isinstance(last.content, list)
-    assert last.content[0]["type"] == "text"
-    assert last.content[1]["type"] == "image_url"
-    assert image_b64 in last.content[1]["image_url"]["url"]
+    assert isinstance(last.content, str)
+    assert "what is this?" in last.content
+    assert image_results in last.content
 
 
 @pytest.mark.unit
-def test_image_with_empty_message_uses_default_text():
+def test_image_results_with_empty_message():
     agent = _make_agent("result")
-    invoke_retail_agent(agent, "", image_b64="abc123")
+    image_results = "- Some product (similarity: 0.90)"
+    invoke_retail_agent(agent, "", image_results=image_results)
     messages = agent.invoke.call_args[0][0]["messages"]
     content = messages[-1].content
-    assert content[0]["text"] == "Find products similar to this image."
+    assert image_results in content
 
 
 @pytest.mark.unit

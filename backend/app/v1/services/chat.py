@@ -3,7 +3,56 @@
 import uuid
 
 from ..agents.runner import invoke_retail_agent
+from ..core.configuration import get_settings
+from ..core.db import get_product_by_id
 from ..core.history import HistoryStore
+from ..core.s3 import generate_presigned_url
+from ..core.utilities import (
+    embed_image,
+    embed_text,
+    format_product_results,
+    search_products_in_collection,
+)
+from ..models.chat import ProductMatch
+
+
+def _enrich(raw_results: list[dict], embedding_type: str) -> list[ProductMatch]:
+    """Enrich raw Qdrant results with PostgreSQL product details and presigned URLs.
+
+    Args:
+        raw_results: Output of ``search_products_in_collection``.
+        embedding_type: ``"text"`` or ``"image"``.
+
+    Returns:
+        List of :class:`ProductMatch` with DB fields and (for image results)
+        a presigned ``image_url``.
+    """
+    products: list[ProductMatch] = []
+    for r in raw_results:
+        payload = r["product"]
+        product_id = payload.get("product_id")
+        if product_id is None:
+            continue
+        db_row = get_product_by_id(product_id) or {}
+        image_url: str | None = None
+        if embedding_type == "image":
+            s3_url = payload.get("product_s3_image_url")
+            if s3_url:
+                image_url = generate_presigned_url(s3_url)
+        products.append(
+            ProductMatch(
+                product_id=product_id,
+                score=r["score"],
+                embedding_type=embedding_type,
+                name=db_row.get("name") or db_row.get("product_name"),
+                description=db_row.get("description")
+                or db_row.get("product_description"),
+                price=db_row.get("price"),
+                category=db_row.get("category"),
+                image_url=image_url,
+            )
+        )
+    return products
 
 
 def handle_chat(
@@ -12,21 +61,50 @@ def handle_chat(
     message: str,
     image_b64: str | None = None,
     session_id: str | None = None,
-) -> tuple[str, str]:
-    """Orchestrate a single chat turn: load history, run agent, persist exchange.
+) -> tuple[str, str, list[ProductMatch]]:
+    """Orchestrate a single chat turn.
+
+    Searches both the text and image Qdrant collections directly, enriches the
+    results with PostgreSQL product details and presigned S3 image URLs, and
+    also runs the conversational agent so it can reason over the same results.
 
     Args:
         agent: The compiled LangGraph retail agent.
         store: A HistoryStore implementation for loading and saving history.
-        message: The customer's current text message.
-        image_b64: Optional base64-encoded image for visual product search.
+        message: The customer's text description of the product they want.
+        image_b64: Optional base64-encoded image for direct CLIP image search.
         session_id: Existing session ID, or None to create a new one.
 
     Returns:
-        A ``(response, session_id)`` tuple.
+        A ``(response, session_id, products)`` tuple where ``products`` is a
+        list of enriched :class:`ProductMatch` objects.
     """
     session_id = session_id or str(uuid.uuid4())
     history = store.get_history(session_id)
-    response = invoke_retail_agent(agent, message, history, image_b64)
+    settings = get_settings()
+
+    # --- Text search (always) ---
+    text_raw: list[dict] = []
+    if message:
+        text_vector = embed_text(message)
+        text_raw = search_products_in_collection(
+            settings.qdrant_text_collection, text_vector
+        )
+    text_products = _enrich(text_raw, "text")
+
+    # --- Image search (only when image is provided) ---
+    image_raw: list[dict] = []
+    image_results: str | None = None
+    if image_b64:
+        image_vector = embed_image(image_b64)
+        image_raw = search_products_in_collection(
+            settings.qdrant_image_collection, image_vector
+        )
+        image_results = format_product_results(image_raw)
+    image_products = _enrich(image_raw, "image")
+
+    products = text_products + image_products
+
+    response = invoke_retail_agent(agent, message, history, image_results=image_results)
     store.append_exchange(session_id, message, response)
-    return response, session_id
+    return response, session_id, products

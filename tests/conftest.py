@@ -46,6 +46,30 @@ def client(mock_agent, fake_redis):
             "backend.app.v1.server.server.redis.Redis.from_url",
             return_value=fake_redis,
         ),
+        patch(
+            "backend.app.v1.services.chat.embed_image",
+            return_value=[0.0] * 768,
+        ),
+        patch(
+            "backend.app.v1.services.chat.embed_text",
+            return_value=[0.0] * 768,
+        ),
+        patch(
+            "backend.app.v1.services.chat.search_products_in_collection",
+            return_value=[],
+        ),
+        patch(
+            "backend.app.v1.services.chat.format_product_results",
+            return_value="No matching products found.",
+        ),
+        patch(
+            "backend.app.v1.services.chat.get_product_by_id",
+            return_value=None,
+        ),
+        patch(
+            "backend.app.v1.services.chat.generate_presigned_url",
+            return_value=None,
+        ),
     ):
         with TestClient(app) as c:
             yield c

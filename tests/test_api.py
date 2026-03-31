@@ -17,6 +17,8 @@ def test_chat_creates_new_session(client):
     data = resp.json()
     assert data["response"] == "Here are some matching products!"
     assert data["session_id"] is not None
+    assert "products" in data
+    assert isinstance(data["products"], list)
 
 
 @pytest.mark.unit

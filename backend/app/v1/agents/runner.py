@@ -1,7 +1,8 @@
 """Retail Chat Agent Runner Module.
 
-Handles message construction (including multimodal image input) and
-extracts the final AI reply from the LangGraph response.
+Builds the message list for the LangGraph agent and extracts the final AI reply.
+Pre-computed image search results (from CLIP) are injected as text context so
+the agent can incorporate them alongside its own text-collection search.
 """
 
 from langchain_core.messages import AIMessage, HumanMessage
@@ -11,20 +12,20 @@ def invoke_retail_agent(
     agent,
     message: str,
     history: list[dict] | None = None,
-    image_b64: str | None = None,
+    image_results: str | None = None,
 ) -> str:
-    """Invoke the retail agent with a message and optional image.
+    """Invoke the retail agent with a message and optional image search context.
 
-    The agent uses GPT-4o's vision capability when an image is provided —
-    it sees the image directly in the conversation and decides autonomously
-    to call ``search_products_by_image_description`` with an extracted
-    visual description.
+    When ``image_results`` is provided (pre-computed CLIP image-collection
+    results from the service layer) they are appended to the human message so
+    the agent can reference them while also searching the text collection.
 
     Args:
         agent: The compiled LangGraph agent.
-        message: The customer's current text message.
+        message: The customer's current text description.
         history: Prior exchanges as dicts with ``role`` and ``content``.
-        image_b64: Optional base64-encoded product image (JPEG or PNG).
+        image_results: Optional formatted string of image-collection matches,
+                       produced by embedding the uploaded image with CLIP.
 
     Returns:
         The agent's reply as a plain string.
@@ -37,17 +38,14 @@ def invoke_retail_agent(
         else:
             messages.append(AIMessage(content=entry["content"]))
 
-    if image_b64:
-        content = [
-            {"type": "text", "text": message or "Find products similar to this image."},
-            {
-                "type": "image_url",
-                "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"},
-            },
-        ]
-        messages.append(HumanMessage(content=content))
-    else:
-        messages.append(HumanMessage(content=message))
+    human_text = message or ""
+    if image_results:
+        suffix = (
+            f"\n\n[Visually similar products found via image search]\n{image_results}"
+        )
+        human_text = (human_text + suffix) if human_text else suffix.lstrip()
+
+    messages.append(HumanMessage(content=human_text or "Find products for me."))
 
     response = agent.invoke({"messages": messages})
 
