@@ -16,10 +16,9 @@ def _render_products(products: list[dict]) -> None:
         image_url = p.get("image_url")
         name = p.get("name") or "Product"
         product_url = p.get("product_url")
-        if not image_url:
-            continue
         with cols[i % 3]:
-            st.image(image_url, use_container_width=True)
+            if image_url:
+                st.image(image_url, use_container_width=True)
             if product_url:
                 st.markdown(f"[{name}]({product_url})")
             else:

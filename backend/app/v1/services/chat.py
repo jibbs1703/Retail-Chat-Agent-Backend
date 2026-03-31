@@ -1,5 +1,6 @@
 """Retail Chat Agent — Chat Service."""
 
+import logging
 import uuid
 
 from ..agents.runner import invoke_retail_agent
@@ -14,6 +15,8 @@ from ..core.utilities import (
     search_products_in_collection,
 )
 from ..models.chat import ProductMatch
+
+logger = logging.getLogger(__name__)
 
 
 def _enrich(raw_results: list[dict], embedding_type: str) -> list[ProductMatch]:
@@ -33,10 +36,18 @@ def _enrich(raw_results: list[dict], embedding_type: str) -> list[ProductMatch]:
         if product_id is None:
             continue
         db_row = get_product_by_id(product_id) or {}
+        logger.debug(
+            "_enrich product_id=%r db_row keys=%r s3_urls=%r",
+            product_id,
+            list(db_row.keys()) if db_row else [],
+            db_row.get("product_s3_image_urls"),
+        )
 
         db_urls = db_row.get("product_s3_image_urls") or []
         s3_url = db_urls[0] if db_urls else None
-        image_url: str | None = generate_presigned_url(s3_url) if s3_url else None
+        image_url: str | None = (
+            generate_presigned_url(s3_url) if s3_url else None
+        ) or s3_url
 
         products.append(
             ProductMatch(
