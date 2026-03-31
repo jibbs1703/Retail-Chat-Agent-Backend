@@ -16,7 +16,7 @@ class BackendSettings(BaseSettings):
     application_description: str = (
         "A backend server for a retail chat agent application."
     )
-    application_frontend_url: str = "http://localhost:3000"
+    application_frontend_url: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
     application_name: str = "Retail Chat Agent Backend"
     application_version: str = "1.0.0"
     application_image_optimal_size: tuple[int, int] = (224, 224)

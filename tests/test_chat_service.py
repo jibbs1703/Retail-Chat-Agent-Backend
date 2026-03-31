@@ -125,10 +125,8 @@ def test_returns_enriched_products_from_text_search():
     store.get_history.return_value = []
     qdrant_hit = {"score": 0.92, "product": {"product_id": 123, "embedding_type": "text"}}
     db_row = {
-        "name": "Blue Jacket",
-        "description": "Slim fit",
-        "price": 49.99,
-        "category": "jackets",
+        "product_title": "Blue Jacket",
+        "product_url": "https://example.com/blue-jacket",
     }
 
     with (
@@ -144,11 +142,10 @@ def test_returns_enriched_products_from_text_search():
         _, _, products = handle_chat(agent, store, "blue jacket")
 
     assert len(products) == 1
-    assert products[0].product_id == 123
+    assert products[0].product_id == "123"
     assert products[0].score == 0.92
     assert products[0].name == "Blue Jacket"
-    assert products[0].price == 49.99
-    assert products[0].image_url is None  # text result has no presigned URL
+    assert products[0].image_url is None
 
 
 @pytest.mark.unit
@@ -173,7 +170,15 @@ def test_returns_enriched_products_with_presigned_url():
             "backend.app.v1.services.chat.search_products_in_collection", return_value=[qdrant_hit]
         ),
         patch("backend.app.v1.services.chat.format_product_results", return_value=""),
-        patch("backend.app.v1.services.chat.get_product_by_id", return_value={"name": "Red Dress"}),
+        patch(
+            "backend.app.v1.services.chat.get_product_by_id",
+            return_value={
+                "product_title": "Red Dress",
+                "product_s3_image_urls": [
+                    "https://bucket.s3.us-east-2.amazonaws.com/456/image_0.jpg"
+                ],
+            },
+        ),
         patch(
             "backend.app.v1.services.chat.generate_presigned_url",
             return_value="https://signed.example.com/img",
@@ -183,6 +188,5 @@ def test_returns_enriched_products_with_presigned_url():
         _, _, products = handle_chat(agent, store, "", image_b64="abc123")
 
     assert len(products) == 1
-    assert products[0].product_id == 456
-    assert products[0].embedding_type == "image"
+    assert products[0].product_id == "456"
     assert products[0].image_url == "https://signed.example.com/img"

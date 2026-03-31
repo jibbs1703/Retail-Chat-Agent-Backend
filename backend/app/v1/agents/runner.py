@@ -33,10 +33,16 @@ def invoke_retail_agent(
     messages: list = []
 
     for entry in history or []:
+        content = entry["content"]
+        if isinstance(content, list):
+            content = " ".join(
+                block.get("text", "") if isinstance(block, dict) else str(block)
+                for block in content
+            )
         if entry["role"] == "user":
-            messages.append(HumanMessage(content=entry["content"]))
+            messages.append(HumanMessage(content=content))
         else:
-            messages.append(AIMessage(content=entry["content"]))
+            messages.append(AIMessage(content=content))
 
     human_text = message or ""
     if image_results:
@@ -55,5 +61,11 @@ def invoke_retail_agent(
         if hasattr(msg, "content") and msg.type == "ai"
     ]
     if ai_messages:
-        return ai_messages[-1].content
+        content = ai_messages[-1].content
+        if isinstance(content, list):
+            content = " ".join(
+                block.get("text", "") if isinstance(block, dict) else str(block)
+                for block in content
+            )
+        return content or "I couldn't generate a response. Please try again."
     return "I couldn't generate a response. Please try again."
