@@ -6,6 +6,26 @@ import os
 import requests
 import streamlit as st
 
+
+def _render_products(products: list[dict]) -> None:
+    """Render product cards (image + name + link) below an assistant message."""
+    if not products:
+        return
+    cols = st.columns(min(len(products), 3))
+    for i, p in enumerate(products):
+        image_url = p.get("image_url")
+        name = p.get("name") or "Product"
+        product_url = p.get("product_url")
+        if not image_url:
+            continue
+        with cols[i % 3]:
+            st.image(image_url, use_container_width=True)
+            if product_url:
+                st.markdown(f"[{name}]({product_url})")
+            else:
+                st.caption(name)
+
+
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
 
@@ -65,6 +85,7 @@ for msg in st.session_state.messages:
         if msg.get("image"):
             st.image(base64.b64decode(msg["image"]), width=260)
         st.markdown(msg["content"])
+        _render_products(msg.get("products", []))
 
 with st.sidebar:
     st.header("Options")
@@ -101,6 +122,7 @@ if prompt := st.chat_input("Describe a product or ask a question…", disabled=n
             st.image(base64.b64decode(image_b64), width=260)
         st.markdown(prompt)
 
+    products: list[dict] = []
     with st.chat_message("assistant"):
         with st.spinner("Thinking…"):
             try:
@@ -109,10 +131,12 @@ if prompt := st.chat_input("Describe a product or ask a question…", disabled=n
                     st.session_state.session_id = data["session_id"]
                     st.query_params["session_id"] = data["session_id"]
                 reply = data["response"]
+                products = data.get("products", [])
             except requests.HTTPError as e:
                 reply = f"Error {e.response.status_code}: {e.response.text}"
             except requests.RequestException as e:
                 reply = f"Request failed: {e}"
         st.markdown(reply)
+        _render_products(products)
 
-    st.session_state.messages.append({"role": "assistant", "content": reply})
+    st.session_state.messages.append({"role": "assistant", "content": reply, "products": products})

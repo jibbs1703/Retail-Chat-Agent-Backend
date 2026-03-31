@@ -171,12 +171,10 @@ def format_product_results(results: list[dict]) -> str:
         return "No matching products found."
 
     from .db import get_product_by_id
-    from .s3 import generate_presigned_url
 
     lines = []
     for r in results:
         payload = r["product"]
-        score = r["score"]
 
         product_id = payload.get("product_id")
         product_row = get_product_by_id(product_id) if product_id else None
@@ -184,16 +182,9 @@ def format_product_results(results: list[dict]) -> str:
         name = (product_row or {}).get("product_title") or "Unknown Product"
         product_url = (product_row or {}).get("product_url") or ""
 
-        # Image URL: prefer the S3 URL stored directly in the Qdrant payload
-        # (image collection); fall back to None if not available.
-        raw_s3_url = payload.get("product_s3_image_url")
-        image_url = generate_presigned_url(raw_s3_url) if raw_s3_url else None
-
-        line = f"- **{name}** (similarity: {score})"
-        if image_url:
-            line += f"\n  Image: {image_url}"
+        line = f"- **{name}**"
         if product_url:
-            line += f"\n  Product page: {product_url}"
+            line += f" — {product_url}"
         lines.append(line)
     return "\n".join(lines)
 

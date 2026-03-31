@@ -34,7 +34,8 @@ def _enrich(raw_results: list[dict], embedding_type: str) -> list[ProductMatch]:
             continue
         db_row = get_product_by_id(product_id) or {}
 
-        s3_url = payload.get("product_s3_image_url")
+        db_urls = db_row.get("product_s3_image_urls") or []
+        s3_url = db_urls[0] if db_urls else None
         image_url: str | None = generate_presigned_url(s3_url) if s3_url else None
 
         products.append(
